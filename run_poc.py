@@ -9,17 +9,20 @@
 import argparse
 
 issue_descs = {
-    1: "RSA Key Recovery Attack",
-    2: "AES-ECB Plaintext Recovery Attack",
-    3: "Framing Attack",
-    4: "Integrity Attack",
-    5: "Guess-and-Purge Variant of Bleichenbacher's Attack on PKCS#1 v1.5 " \
+    "1": "RSA Key Recovery Attack (fast)",
+    "1a": "RSA Key Recovery Attack (original)",
+    "1b": "RSA Key Recovery Attack (fast)",
+    "1c": "RSA Key Recovery Attack (small)",
+    "2": "AES-ECB Plaintext Recovery Attack",
+    "3": "Framing Attack",
+    "4": "Integrity Attack",
+    "5": "Guess-and-Purge Variant of Bleichenbacher's Attack on PKCS#1 v1.5 " \
         "adapted for Mega's custom padding"
 }
 
 parser = argparse.ArgumentParser(description="Run PoCs")
 
-parser.add_argument("-i", "--issue", type=int, help="Specify which issue to run")
+parser.add_argument("-i", "--issue", type=str, help="Specify which issue to run")
 parser.add_argument("-a", "--abstract", action="store_true", help="Only run abstract PoC")
 parser.add_argument("-m", "--mitm", action="store_true", help="Only run mitm PoC")
 
@@ -30,12 +33,12 @@ if args.mitm and args.abstract:
     exit(1)
 if not args.issue:
     print("Running all PoCs...")
-    issues = issue_descs.keys()
+    issues = ["1", "2", "3", "4", "5"]
 else:
     if args.issue not in issue_descs:
         print(f"Issue {args.issue} is not available. Implemented issues are:")
         for i, desc in issue_descs.items():
-            print("\t- Issue {i}: {desc}")
+            print(f"\t- Issue {i}: {desc}")
         exit(1)
     issues = [args.issue]
 
@@ -60,19 +63,26 @@ def print_attack_title(title):
 for issue in issues:
     print_attack_title(f"Performing {issue_descs[issue]}")
 
-    if issue == 1:
+    if "1" in issue:
+        if issue == "1a":
+            impl = "original"
+        elif issue == "1" or issue == "1b":
+            impl = "fast"
+        elif issue == "1c":
+            impl = "small"
+
         if run_abstract:
             from issue_01.poc_abstract import *
-            poc = PoCAbstractRsaKeyRecovery()
+            poc = PoCAbstractRsaKeyRecovery(impl)
             poc.run_sanity_checks()
             poc.run_attack()
 
         if run_mitm:
             from issue_01.poc_mitm import *
-            poc = PoCMitmRsaKeyRecovery()
+            poc = PoCMitmRsaKeyRecovery(impl)
             poc.run_attack()
 
-    if issue == 2:
+    if issue == "2":
         if run_abstract:
             from issue_02.poc_abstract import *
             poc = PoCAbstractAesEcbPlaintextRecovery()
@@ -84,7 +94,7 @@ for issue in issues:
             poc = PoCMitmAesEcbPlaintextRecovery()
             poc.run_attack()
 
-    if issue == 3:
+    if issue == "3":
         if run_abstract:
             from issue_03.poc_abstract import *
             poc = PoCAbstractFramingAttack()
@@ -96,7 +106,7 @@ for issue in issues:
             poc = PoCMitmFramingAttack()
             poc.run_attack()
 
-    if issue == 4:
+    if issue == "4":
         if run_abstract:
             from issue_04.poc_abstract import *
             poc = PoCAbstractIntegrityAttack()
@@ -107,7 +117,7 @@ for issue in issues:
             poc = PoCMitmIntegrityAttack()
             poc.run_attack()
 
-    if issue == 5:
+    if issue == "5":
         if run_abstract:
             from issue_05.poc_abstract import *
             poc = PoCAbstractGaPBleichenbacherAttack()

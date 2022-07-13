@@ -88,7 +88,7 @@ def response(flow: http.HTTPFlow) -> None:
             # Replace encrypted session ID
             #
             csid = d[0]["csid"]
-            csid_p = attack.get_next_sid()
+            _, csid_p = attack.get_next_wrapped_key_and_ciphertext()
             csid_p_encoded = url_encode(csid_p).decode()
             d[0]["csid"] = csid_p_encoded
 

@@ -7,7 +7,7 @@ This repository contains the PoC attacks for the paper "MEGA: Malleable Encrypti
 ## Overview
 
 This repository contains PoCs for the following five attacks on the cryptographic design of MEGA:
-1. [RSA key recovery](issue_01): combines key overwriting with a chosen-plaintext attack to factor the RSA modulus in 683 login queries.
+1. [RSA key recovery](issue_01): combines key overwriting with a chosen-plaintext attack to factor the RSA modulus in as few as 6 login queries. Includes the original attack (1a), the fast attack (1b), and the small attack (1c).
 2. [AES-ECB plaintext recovery](issue_02): recovers the plaintext of two AES blocks encrypted with AES-ECB under the master key. In MEGA's architecture, this affects signing keys, asymmetric chat keys, and node encryption keys using an adaption of the RSA key recovery attack.
 3. [Framing attack](issue_03): uses the AES-ECB plaintext recovery to place a largely chosen file (except for one AES block) in a victim's cloud, which is indistinguishable from genuinely uploaded data.
 4. [Integrity attack](issue_04): uses a single known AES-ECB plaintext-ciphertext pair to construct a file ciphertext which passes integrity protection and uses a key of all zero bytes.
@@ -94,6 +94,8 @@ The following might be helpful when extracting the target account information fo
 ## How to Run
 
 You can run all PoCs using the script `run_poc.py`. Some attacks have a MitM implementation, which requires more a more sophisticated setup (with `mitmproxy` and `Selenium`). You can only run the attacks that use a simulated version of MEGA by using the `--abstract` flag. By default, all attacks (on both types and for all issues) are run.
+
+The optimized attacks can be run by specifying issue 1b (fast) or 1c (small).
 
 Help page of the entry point script `run_poc.py`:
 ```text      

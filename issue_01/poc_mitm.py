@@ -15,7 +15,14 @@ from shared.victim import *
 from shared.mitmproxy import *
 
 class PoCMitmRsaKeyRecovery:
-    def __init__(self):
+    def __init__(self, impl):
+        if impl not in ["original", "fast", "small"]:
+            raise ValueError(f"Implementation {impl} must be one of original, fast, or small.")
+        self.impl = impl
+
+        if impl != "original":
+            raise NotImplementedError()
+
         print("# Initialize MITM RSA key recovery PoC")
 
     def run_attack(self):
